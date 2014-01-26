@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 )
@@ -39,7 +38,7 @@ func (s sortEntry) Swap(i, j int) {
 func ReadDepLog(path string) (*DepLog, error) {
 	out := &DepLog{
 		root: path,
-		Go:   runtime.Version(),
+		Go:   goVersion(),
 		Revs: map[string]*Entry{},
 	}
 	bs, err := ioutil.ReadFile(out.path())
