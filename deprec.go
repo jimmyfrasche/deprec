@@ -18,6 +18,7 @@ func Usage() {
 	os.Exit(2)
 }
 
+//Usage: %name %flags import-path*
 func main() {
 	log.SetFlags(0)
 	flag.Usage = Usage

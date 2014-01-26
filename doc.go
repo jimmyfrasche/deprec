@@ -12,7 +12,7 @@
 //The commands used to extract the revision ids are:
 //	bzr revno
 //	git rev-parse HEAD
-//	hg id -i
+//	hg id -i --debug
 //	svnversion
 //
 //EXAMPLES

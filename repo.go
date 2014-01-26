@@ -27,7 +27,7 @@ func repoRoot(p *goutil.Package) (*Root, error) {
 var repo = map[string][]string{
 	"bzr": []string{"revno"},
 	"git": []string{"rev-parse", "HEAD"},
-	"hg":  []string{"id", "-i"},
+	"hg":  []string{"id", "-i", "--debug"},
 	"svn": nil, //special cased
 }
 
