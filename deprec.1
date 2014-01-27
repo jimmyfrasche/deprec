@@ -7,11 +7,19 @@ and allows easy comparison to help track down dependency differences.
 .B deprec
 .RB [ \-check ]
 .RB [ \-s ]
+.RB [ \-with-godep ]
 .B import\-path*
 .SH "DESCRIPTION"
 The file contains the Go version of the current system along with all dependencies' repositories and their revision id in the root of the repository. 
 The Go version always goes on the first line. 
 After that each dependency is listed in alphabetical order. 
+.PP
+If a repository contains a Godeps file from godep(1), by default 
+.BR deprec (1)
+will refuse to dep.log without the 
+.B \-with-godep
+flag. 
+It will however read the information in the Godeps file and use that to do its comparison. 
 .SH "OPTIONS"
 .TP
 .BR "\-check "
@@ -19,6 +27,10 @@ compare dep.log to current system and do not save a new dep.log
 .TP
 .BR "\-s "
 exit with 1 if different instead of printing differences 
+.TP
+.BR "\-with-godep "
+write dep.log even if repo contains a Godeps file from 
+.BR godep (1)
 .SH "REVISION IDS"
 The commands used to extract the revision ids are: 
 .PP
@@ -71,3 +83,5 @@ echo different
 .RE
 fi
 .RE
+.SH "SEE ALSO"
+.BR godep (1)

@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 var (
-	check  = flag.Bool("check", false, "compare dep.log to current system and do not save a new dep.log")
-	script = flag.Bool("s", false, "exit with 1 if different instead of printing differences")
+	check      = flag.Bool("check", false, "compare dep.log to current system and do not save a new dep.log")
+	script     = flag.Bool("s", false, "exit with 1 if different instead of printing differences")
+	writeGodep = flag.Bool("with-godep", false, "write dep.log even if repo contains a Godeps file from godep(1)")
 )
 
 func Usage() {
@@ -38,7 +40,7 @@ func main() {
 		log.Printf("%s%s", prefix, err)
 	}
 
-	wasdiff := false
+	wasdiff, waserr := false, false
 
 outer:
 	for _, arg := range args {
@@ -49,19 +51,22 @@ outer:
 		root, roots, err := Import(nil, arg)
 		if err != nil {
 			logerr(err)
+			waserr = true
 			continue
 		}
 
 		deplog, err := ReadDepLog(root.root)
 		if err != nil {
 			logerr(err)
+			waserr = true
 			continue
 		}
 
 		for _, root := range roots {
-			rev, err := root.Rev() //TODO
+			rev, err := root.Rev()
 			if err != nil {
 				logerr(err)
+				waserr = true
 				continue outer
 			}
 			deplog.Add(root.path, rev)
@@ -77,14 +82,21 @@ outer:
 		}
 
 		if !*check {
+			if deplog.fromGodep && !*writeGodep {
+				f := filepath.Join(filepath.Base(deplog.root), "dep.log")
+				log.Printf("Cannot write %s. Dependency information was from godep(1)\n", f)
+				waserr = true
+				continue
+			}
 			err = deplog.Write()
 			if err != nil {
+				waserr = true
 				logerr(err)
 			}
 		}
 	}
 
-	if *script && wasdiff {
+	if waserr || (*script && wasdiff) {
 		os.Exit(1)
 	}
 }

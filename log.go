@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/jimmyfrasche/goutil"
 	"io/ioutil"
 	"path/filepath"
 	"sort"
@@ -20,6 +22,15 @@ type (
 		Go, oldGo string
 		Revs      map[string]*Entry
 		sorted    sortEntry
+		fromGodep bool
+	}
+
+	Godeps struct {
+		GoVersion string
+		Deps      []struct {
+			ImportPath string
+			Rev        string
+		}
 	}
 )
 
@@ -43,7 +54,12 @@ func ReadDepLog(path string) (*DepLog, error) {
 	}
 	bs, err := ioutil.ReadFile(out.path())
 	if err != nil {
-		//if there wasn't an old dep file, nothing to do
+		//if there wasn't an old dep file, see if there was a Godep file
+		err = readGodeps(out)
+		if err != nil {
+			//no old dep info, nothing to do
+			return out, nil
+		}
 		return out, nil
 	}
 	for i, record := range strings.Split(string(bs), "\n") {
@@ -67,8 +83,43 @@ func ReadDepLog(path string) (*DepLog, error) {
 	return out, nil
 }
 
+func readGodeps(d *DepLog) error {
+	bs, err := ioutil.ReadFile(d.godepPath())
+	if err != nil {
+		//no old dep info, nothing to do
+		return nil
+	}
+
+	var godep Godeps
+	err = json.Unmarshal(bs, &godep)
+	if err != nil {
+		return err
+	}
+
+	d.fromGodep = true
+	d.oldGo = godep.GoVersion
+	for _, rev := range godep.Deps {
+		//XXX below nil may cause problems if we ever include -tags
+		pkg, err := goutil.Import(nil, rev.ImportPath)
+		if err != nil {
+			return err
+		}
+		root, err := repoRoot(pkg)
+		if err != nil {
+			return err
+		}
+		p := root.path
+		d.Revs[p] = &Entry{repo: p, old: rev.Rev}
+	}
+	return nil
+}
+
 func (d *DepLog) path() string {
 	return filepath.Join(d.root, "dep.log")
+}
+
+func (d *DepLog) godepPath() string {
+	return filepath.Join(d.root, "Godeps")
 }
 
 func (d *DepLog) Add(repo, rev string) {
@@ -97,12 +148,19 @@ func (d *DepLog) Diff() (out []string) {
 	pushf := func(s string, v ...interface{}) {
 		out = append(out, fmt.Sprintf(s, v...))
 	}
-	if d.Go != d.oldGo {
+	if d.oldGo == "" && d.Go != d.oldGo {
 		pushf("Package built with %s but you are using %s", d.Go, d.oldGo)
 	}
 	for _, e := range d.Revs {
 		if e.old != e.new {
-			pushf("Package built with %s revision %s but you are using %s", e.repo, e.old, e.new)
+			switch {
+			case e.new == "":
+				//nothing to report
+			case e.old == "":
+				pushf("Package %s is a new dependency", e.repo)
+			default:
+				pushf("Package built with %s revision %s but you are using %s", e.repo, e.old, e.new)
+			}
 		}
 	}
 	return

@@ -7,6 +7,11 @@
 //The Go version always goes on the first line.
 //After that each dependency is listed in alphabetical order.
 //
+//If a repository contains a Godeps file from godep(1), by default deprec(1)
+//will refuse to dep.log without the -with-godep flag.
+//It will however read the information in the Godeps file and use that to
+//do its comparison.
+//
 //REVISION IDS
 //
 //The commands used to extract the revision ids are:
